@@ -8,6 +8,7 @@ use Discord\Parts\Channel\Message;
 use Discord\WebSockets\Intents;
 use Discord\WebSockets\Event;
 use Discord\Parts\Embed\Embed;
+use Discord\Parts\User\Activity;
 
 $cache = [
 	'known_ids' => []
@@ -29,8 +30,6 @@ $discord = new Discord([
 	  | Intents::MESSAGE_CONTENT,
 ]);
 
-print_r($cache['known_ids']);
-
 function isKnown($id) {
 	global $cache;
 	return isset($cache['known_ids'][$id]);
@@ -38,6 +37,12 @@ function isKnown($id) {
 
 $discord->on('init', function (Discord $discord) use ($config) {
 	echo "Bot is ready!", PHP_EOL;
+
+	$activity = new Activity($discord, [
+		'name' => "Principia",
+		'type' => Activity::TYPE_GAME,
+	]);
+	$discord->updatePresence($activity);
 
 	// Listen for messages.
 	$discord->on(Event::MESSAGE_CREATE, function (Message $message, Discord $discord) use ($config) {
@@ -72,6 +77,10 @@ $discord->on('init', function (Discord $discord) use ($config) {
 			$mbd->setTitle(":sparkles: **Top 10 Members** :sparkles:")
 				->addFieldValues('Name', join("\n", $names), true)
 				->addFieldValues('XP', join("\n", $xps), true);
+
+		} else if ($msg === '!help') {
+
+			return "What, are you hanging off a cliff or something?";
 
 		} else {
 			if (in_array($message->channel_id, $config['ignored_channels'])) return;
