@@ -11,7 +11,8 @@ use Discord\Parts\Embed\Embed;
 use Discord\Parts\User\Activity;
 
 $cache = [
-	'known_ids' => []
+	'known_ids' => [],
+	'last_rewarded_msg' => []
 ];
 
 $levels = query("SELECT id, xp FROM levels");
@@ -30,12 +31,9 @@ $discord = new Discord([
 	  | Intents::MESSAGE_CONTENT,
 ]);
 
-function isKnown($id) {
+$discord->on('init', function (Discord $discord) use ($config, $cache) {
 	global $cache;
-	return isset($cache['known_ids'][$id]);
-}
 
-$discord->on('init', function (Discord $discord) use ($config) {
 	echo "Bot is ready!", PHP_EOL;
 
 	$activity = new Activity($discord, [
@@ -45,7 +43,9 @@ $discord->on('init', function (Discord $discord) use ($config) {
 	$discord->updatePresence($activity);
 
 	// Listen for messages.
-	$discord->on(Event::MESSAGE_CREATE, function (Message $message, Discord $discord) use ($config) {
+	$discord->on(Event::MESSAGE_CREATE, function (Message $message, Discord $discord) use ($config, $cache) {
+		global $cache;
+
 		if ($message->author->bot) return;
 
 		$msg = $message->content;
@@ -85,14 +85,22 @@ $discord->on('init', function (Discord $discord) use ($config) {
 		} else {
 			if (in_array($message->channel_id, $config['ignored_channels'])) return;
 
-			if (isKnown($uid)) {
-				query("UPDATE levels SET xp = xp + ? WHERE id = ?",
-					[getXP(), $uid]);
-			} else {
-				insertInto('levels', [
-					'id' => $message->author->id,
-					'xp' => getXP()
-				]);
+			$lastRewarded = $cache['last_rewarded_msg'][$uid] ?? 0;
+			if ($lastRewarded+60 < time()) {
+
+				if (isset($cache['known_ids'][$uid])) {
+					query("UPDATE levels SET xp = xp + ? WHERE id = ?",
+						[getXP(), $uid]);
+				} else {
+					insertInto('levels', [
+						'id' => $message->author->id,
+						'xp' => getXP()
+					]);
+
+					$cache['known_ids'][$uid] = true;
+				}
+
+				$cache['last_rewarded_msg'][$uid] = time();
 			}
 		}
 
