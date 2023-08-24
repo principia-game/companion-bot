@@ -1,2 +1,4 @@
 vendor
 config.php
+data.db
+data.json

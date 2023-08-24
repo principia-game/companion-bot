@@ -1,7 +1,7 @@
 <?php
 require('config.php');
-include __DIR__.'/vendor/autoload.php';
-require('mysql.php');
+require('vendor/autoload.php');
+require('sqlite.php');
 
 use Discord\Discord;
 use Discord\Parts\Channel\Message;
@@ -9,6 +9,7 @@ use Discord\WebSockets\Intents;
 use Discord\WebSockets\Event;
 use Discord\Parts\Embed\Embed;
 use Discord\Parts\User\Activity;
+use Monolog\Logger;
 
 $cache = [
 	'known_ids' => [],
@@ -17,9 +18,8 @@ $cache = [
 
 $levels = query("SELECT id, xp FROM levels");
 
-while ($level = $levels->fetch()) {
+while ($level = $levels->fetch())
 	$cache['known_ids'][$level['id']] = true;
-}
 
 function getXP() {
 	return rand(15, 25);
@@ -28,7 +28,7 @@ function getXP() {
 $discord = new Discord([
 	'token' => $config['token'],
 	'intents' => Intents::getDefaultIntents()
-	  | Intents::MESSAGE_CONTENT,
+	  | Intents::MESSAGE_CONTENT
 ]);
 
 $discord->on('init', function (Discord $discord) use ($config, $cache) {
@@ -64,7 +64,7 @@ $discord->on('init', function (Discord $discord) use ($config, $cache) {
 
 		} else if ($msg === '!top') {
 
-			$top = query("SELECT id,xp FROM levels ORDER BY xp DESC");
+			$top = query("SELECT id,xp FROM levels ORDER BY xp DESC LIMIT 20");
 
 			$names = $xps = [];
 
@@ -74,7 +74,7 @@ $discord->on('init', function (Discord $discord) use ($config, $cache) {
 			}
 
 			$mbd = new Embed($discord);
-			$mbd->setTitle(":sparkles: **Top 10 Members** :sparkles:")
+			$mbd->setTitle(":sparkles: **Top 20 Members** :sparkles:")
 				->addFieldValues('Name', join("\n", $names), true)
 				->addFieldValues('XP', join("\n", $xps), true);
 
@@ -108,7 +108,6 @@ $discord->on('init', function (Discord $discord) use ($config, $cache) {
 			$message->channel->sendEmbed($mbd);
 		}
 
-		echo "{$message->author->username}: {$message->content}", PHP_EOL;
 	});
 });
 
