@@ -44,6 +44,12 @@ function insertInto($table, $data) {
 	return query($query, $values);
 }
 
+function paginate($page, $pp) {
+	$page = (is_numeric($page) && $page > 0 ? $page : 1);
+
+	return sprintf(" LIMIT %s, %s", (($page - 1) * $pp), $pp);
+}
+
 query(<<<SQL
 CREATE TABLE IF NOT EXISTS "levels" (
 	"id" TEXT PRIMARY KEY NOT NULL UNIQUE,
