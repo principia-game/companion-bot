@@ -70,6 +70,13 @@ $discord->on(Event::MESSAGE_CREATE, function (Message $message, Discord $discord
 		return;
 	}
 
+	// Blåhaj corrector
+	if (str_contains(strtolower($message->content), 'blahaj')) {
+		$message->channel->sendMessage(sprintf(
+			"Hey <@%s>. What you are referring to as `blahaj` is in fact `blåhaj`, `BLÅHAJ`, or as it alternatively can be written, `blaahaj`.  The letter `Åå` is part of the Swedish alphabet but if it does not exist on your keyboard it is common to write it as `aa`. :point_up::nerd:",
+		$message->author->id));
+	}
+
 	// Otherwise, increment XP if user is eligble:
 
 	if (in_array($message->channel_id, IGNORED_CHANNELS)) return;
