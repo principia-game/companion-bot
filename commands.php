@@ -8,15 +8,26 @@ use function Discord\getColor;
 define('EMBED_CLR', getColor("#7ba0a0"));
 
 $commands['rank'] = function($discord, $message) {
-	$author = $message->author;
+	$user = $message->author;
 
-	$xp = result("SELECT xp FROM levels WHERE id = ?", [$author->id]);
+	$xp = result("SELECT xp FROM levels WHERE id = ?", [$user->id]);
+
+	$rank = 0;
+	$levels = query("SELECT id FROM levels ORDER BY xp DESC");
+	while ($level = $levels->fetch()) {
+		$rank++;
+
+		if ($level['id'] == $user->id) break;
+	}
 
 	$mbd = new Embed($discord);
 	$mbd->setTitle(sprintf(
 			'Stats for %s (%s) ',
-		$author->displayname, $author->username))
-		->setDescription(":sparkles: $xp Server XP")
+		$user->displayname, $user->username))
+		->setDescription(
+			":sparkles: $xp Server XP\n".
+			":medal: Rank #$rank")
+		->setThumbnail($user->getAvatarAttribute())
 		->setColor(EMBED_CLR);
 
 	return $mbd;
@@ -25,20 +36,26 @@ $commands['rank'] = function($discord, $message) {
 $commands['top'] = function($discord, $message, $args) {
 	$page = (int)($args[1] ?? 1);
 
+	 // 100 pages means 2k members. If this ever needs to be increased then we're suffering from success.
+	$page = clamp($page, 0, 100);
+
 	$top = query("SELECT id,xp FROM levels ORDER BY xp DESC ".paginate($page, 20));
 
 	$names = $xps = [];
 
+	$rank = ($page-1)*20;
+
 	while ($user = $top->fetch()) {
-		$names[] = '<@'.$user['id'].'>';
-		$xps[] = $user['xp'];
+		$rank++;
+		$names[] = '`'.leftpad($rank, 3).'.` <@'.$user['id'].'>';
+		$xps[] = '`'.leftpad(fmtnum($user['xp']), 7).'`';
 	}
 
 	$pagelbl = ($page > 1 ? " (Page $page)" : '');
 
 	$mbd = new Embed($discord);
 	$mbd->setTitle(":sparkles: **Top 20 Members**$pagelbl :sparkles:")
-		->addFieldValues('Name', join("\n", $names), true)
+		->addFieldValues('Rank  Name', join("\n", $names), true)
 		->addFieldValues('XP', join("\n", $xps), true)
 		->setColor(EMBED_CLR);
 

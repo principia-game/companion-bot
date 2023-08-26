@@ -1,9 +1,9 @@
 <?php
-
 require('config.php');
 require('vendor/autoload.php');
 require('cache.php');
 require('commands.php');
+require('functions.php');
 require('sqlite.php');
 
 use Discord\Builders\MessageBuilder;
@@ -22,10 +22,6 @@ use Discord\Parts\User\Activity;
 
 	while ($level = $levels->fetch())
 		Cache::set('known_ids', $level['id'], true);
-}
-
-function getXP() {
-	return rand(15, 25);
 }
 
 $discord = new Discord([

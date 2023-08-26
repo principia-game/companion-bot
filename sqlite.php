@@ -39,7 +39,7 @@ function insertInto($table, $data) {
 
 	$query = sprintf(
 		"INSERT INTO %s (%s) VALUES (%s)",
-	$table, implode(',', $fields), implode(',', $placeholders));
+	$table, commasep($fields), commasep($placeholders));
 
 	return query($query, $values);
 }
