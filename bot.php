@@ -25,7 +25,7 @@ use Discord\Parts\User\Activity;
 }
 
 $discord = new Discord([
-	'token' => $config['token'],
+	'token' => TOKEN,
 	'intents' => Intents::getDefaultIntents() | Intents::MESSAGE_CONTENT
 ]);
 
@@ -40,18 +40,27 @@ $discord->on('init', function (Discord $discord) {
 });
 
 // Listen for messages.
-$discord->on(Event::MESSAGE_CREATE, function (Message $message, Discord $discord) use ($config, $commands) {
+$discord->on(Event::MESSAGE_CREATE, function (Message $message, Discord $discord) use ($commands) {
 	if ($message->author->bot) return;
 
 	$args = $cmd = null;
-	if (str_starts_with($message->content, '!')) {
+	if (str_starts_with($message->content, PREFIX)) {
 		$args = explode(' ', $message->content);
 		$cmd = substr($args[0], 1);
 	}
 
 	// If message is a command and it exists in commands array, call it and return.
 	if ($cmd && isset($commands[$cmd])) {
-		$ret = $commands[$cmd]($discord, $message, $args);
+		try {
+			$ret = $commands[$cmd]($discord, $message, $args);
+		} catch (PDOException $e) {
+			if (defined('DEBUG_CHANNEL'))
+				$discord->getChannel(DEBUG_CHANNEL)->sendMessage(substr($e, 0, 1984));
+			else
+				print($e);
+
+			return;
+		}
 
 		if ($ret instanceof Embed)
 			$message->channel->sendMessage(MessageBuilder::new()->addEmbed($ret));
@@ -63,7 +72,7 @@ $discord->on(Event::MESSAGE_CREATE, function (Message $message, Discord $discord
 
 	// Otherwise, increment XP if user is eligble:
 
-	if (in_array($message->channel_id, $config['ignored_channels'])) return;
+	if (in_array($message->channel_id, IGNORED_CHANNELS)) return;
 
 	$uid = $message->author->id;
 
